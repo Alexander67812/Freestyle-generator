@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Freestyle Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; font-family: 'Orbitron', sans-serif; background-color: #000; color: #fff; }
+    .particles { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: 0; }
+    .particle { position: absolute; width: 8px; height: 8px; background-color: rgba(255, 0, 255, 0.4); border-radius: 50%; animation: float 20s infinite linear; }
+    @keyframes float { from { transform: translateY(100vh); } to { transform: translateY(-10vh); } }
+
+    #start-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
+    #start-screen h1 { font-size: 48px; color: #ff66ff; margin-bottom: 20px; }
+    #start-screen button, #controls button {
+      font-size: 14px; font-weight: bold; cursor: pointer;
+      padding: 10px 20px; margin: 5px;
+      background: linear-gradient(145deg, #ff00ff, #ff66cc);
+      border: none; border-radius: 6px; color: #000;
+      box-shadow: 0 0 5px #ff00ff;
+    }
+
+    #controls { position: fixed; top: 20px; left: 20px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(255,0,255,0.5); z-index: 10; }
+    #controls h1 { font-size: 28px; margin-bottom: 15px; color: #ff66ff; }
+
+    #manual-button {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(145deg, #ff00ff, #ff66cc);
+      border: none; padding: 12px 24px;
+      color: #000; border-radius: 10px;
+      font-size: 16px; font-weight: bold;
+      box-shadow: 0 0 10px #ff00ff;
+      cursor: pointer; z-index: 10;
+    }
+
+    #center-box {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60%; padding: 40px;
+      border: 4px dashed #ff00ff;
+      border-radius: 12px; text-align: center;
+      background-color: rgba(255, 0, 255, 0.05);
+      box-shadow: 0 0 30px #ff00ff88, inset 0 0 20px #ff00ff33;
+      z-index: 5;
+    }
+
+    #word-display {
+      font-size: 64px;
+      font-weight: bold;
+      color: #ff66ff;
+      text-shadow: 2px 2px 12px #ff00ff;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+
+    .difficulty-buttons { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+
+    /* Кнопка "Обучение" */
+    #learn-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(145deg, #ff00ff, #ff66cc);
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      box-shadow: 0 0 10px #ff00ff;
+      cursor: pointer;
+      z-index: 20;
+    }
+
+    /* === Модалка обучения === */
+#learn-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 10000;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 0;
+  overflow-y: auto; /* ✅ теперь можно прокручивать */
+}
+
+#learn-modal-content {
+  background: rgba(255, 0, 255, 0.1);
+  border: 2px solid #ff00ff;
+  border-radius: 12px;
+  padding: 30px;
+  width: 80%;
+  max-width: 700px;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 0 20px #ff00ff;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+    #learn-modal input {
+      width: 80%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 16px;
+      outline: none;
+    }
+
+    #learn-modal button {
+      margin-top: 10px;
+      background: linear-gradient(145deg, #ff00ff, #ff66cc);
+      border: none;
+      padding: 10px 15px;
+      border-radius: 6px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 10px #ff00ff;
+    }
+
+    #rhyme-output {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #ffccff;
+    }
+
+    #close-learn {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 28px;
+      color: #ff66ff;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+  <div id="start-screen">
+    <h1>Добро пожаловать в Freestyle Generator</h1>
+    <button onclick="startApp()">Начать</button>
+  </div>
+
+  <div id="controls" style="display:none">
+    <div id="word-counter" style="margin-bottom: 10px; font-size: 18px; color: #ffccff;">🎯 Слов отбито: 0</div>
+
+    <div class="difficulty-buttons">
+      <button onclick="setDifficulty('easy')">Лёгкий</button>
+      <button onclick="setDifficulty('medium')">Средний</button>
+      <button onclick="setDifficulty('hard')">Сложный</button>
+    </div><br>
+
+    <label for="beatSelector" style="color:#ccc;">🎵 Бит:</label>
+    <select id="beatSelector" onchange="changeBeat()">
+  <option value="bit1">Polnyi BAk</option>
+  <option value="bit2">CAdilac</option>
+  <option value="bit3">MIMIMAMUMU</option>
+  <option value="bit4">Rap Beat 01</option>
+  <option value="bit5">Rap Beat 02</option>
+  <option value="bit6">Rap Beat 03</option>
+  <option value="bit7">Rap Beat 04</option>
+  <option value="bit8">Rap Beat 05</option>
+  <option value="bit9">Rap Beat 06</option>
+  <option value="bit10">Rap Beat 07</option>
+   </select>
+   <button onclick="toggleBeat()">🎵 Вкл/Выкл бит</button><br><br>
+
+    <h1>🎤 Freestyle Generator</h1>
+    <button onclick="startGenerator()">Start</button>
+    <button onclick="stopGenerator()">Stop</button><br><br>
+    <select id="modeSwitcher" onchange="switchMode()">
+      <option value="auto">Авто</option>
+      <option value="manual">Ручной</option>
+    </select>
+  </div>
+
+  <button id="manual-button" style="display:none" onclick="showWord()">Новое слово</button>
+  <button id="learn-btn" onclick="openLearn()">🎓 Обучение</button>
+
+  <div id="center-box"><div id="word-display">Готов?</div></div>
+
+  <!-- 🎓 Модалка обучения -->
+<div id="learn-modal">
+  <div id="close-learn" onclick="closeLearn()">✖</div>
+  <div id="learn-modal-content" style="max-width: 700px;">
+    <h2>🔥 Как научиться фристайлить</h2>
+    <p style="text-align:left; line-height:1.6; font-size:16px;">
+      Фристайл — это искусство импровизации. Чтобы звучать уверенно, не обязательно быть поэтом — главное чувствовать бит и поток.
+      <br><br>
+      <b>1️⃣ Освободи голову.</b><br>
+      Говори всё, что приходит в голову. Не думай — просто лови ритм.
+      <br><br>
+      <b>2️⃣ Развивай реакцию.</b><br>
+      Чем быстрее ты можешь ответить рифмой — тем лучше звучит флоу.
+      <br><br>
+      <b>3️⃣ Следи за дыханием.</b><br>
+      Дыши в ритм, не сбивайся, даже если слова идут сами собой.
+      <br><br>
+      <b>4️⃣ Ошибки — часть стиля.</b><br>
+      Никто не фристайлит идеально. Главное — не останавливаться.
+      <br><br>
+      <b>5️⃣ Практикуйся каждый день.</b><br>
+      Импровизация — это мышца. Чем чаще тренируешь, тем сильнее она становится.
+    </p>
+
+    <hr style="border:1px solid #ff00ff; margin:15px 0;">
+
+    <h3>🎯 Проверь себя</h3>
+<p style="font-size:15px; color:#ccc;">
+  Тебе даётся слово — придумай к нему рифму и проверь, насколько она близка!
+</p>
+
+<div id="check-yourself" style="margin-top:20px;">
+  <div id="self-word" style="font-size:32px; color:#ff99ff; margin-bottom:15px;">Нажми «Новое слово»</div>
+
+  <input type="text" id="rhyme-answer" placeholder="Введи свою рифму..."
+    style="padding:10px;width:60%;border:none;border-radius:6px;text-align:center;font-size:16px;outline:none;margin-bottom:10px;">
+
+  <div>
+    <button onclick="newSelfWord()" 
+      style="background:linear-gradient(145deg,#ff00ff,#ff66cc);border:none;padding:10px 20px;border-radius:6px;color:#000;font-weight:bold;cursor:pointer;box-shadow:0 0 10px #ff00ff;margin-right:10px;">
+      🔁 Новое слово
+    </button>
+
+    <button onclick="checkRhyme()" 
+      style="background:linear-gradient(145deg,#ff00ff,#ff66cc);border:none;padding:10px 20px;border-radius:6px;color:#000;font-weight:bold;cursor:pointer;box-shadow:0 0 10px #ff00ff;">
+      ✅ Проверить
+    </button>
+  </div>
+
+  <div id="rhyme-feedback" style="margin-top:15px; font-size:18px; color:#ffccff;">Введите рифму и нажмите «Проверить»</div>
+  <div id="self-count" style="margin-top:10px;color:#ffccff;">🎤 Угаданных рифм: 0</div>
+</div>
+
+
+
+  <!-- 🎧 Список всех битов -->
+ <audio id="bit1" class="beat" src="Polnyi BAk.mp3" loop></audio>
+ <audio id="bit2" class="beat" src="CAdilac.mp3" loop></audio>
+ <audio id="bit3" class="beat" src="MIMIMAMUMU.mp3" loop></audio>
+ <audio id="bit4" class="beat" src="Rap Beat 01.mp3" loop></audio>
+ <audio id="bit5" class="beat" src="Rap Beat 02.mp3" loop></audio>
+ <audio id="bit6" class="beat" src="Rap Beat 03.mp3" loop></audio>
+ <audio id="bit7" class="beat" src="Rap Beat 04.mp3" loop></audio>
+ <audio id="bit8" class="beat" src="Rap Beat 05.mp3" loop></audio>
+ <audio id="bit9" class="beat" src="Rap Beat 06.mp3" loop></audio>
+ <audio id="bit10" class="beat" src="Rap Beat 07.mp3" loop></audio>
+
+
+  <script>
+    const rhymes = {
+      "бит": ["ритм","фит","скит","шит","элит"],
+      "рэп": ["трэп","степ","кэп","флэп","клеп"],
+      "строка": ["рука","река","собака","доска","облака"],
+      "ночь": ["точь","почь","дочь","прочь","молочь"],
+      "звук": ["круг","луг","друг","плуг","жук"]
+    };
+
+    const wordSets = {
+      easy: ["бит","рэп","панч","строка","флоу","микрофон","город","улица","друг","звук"],
+      medium: ["рэпер","битмейкер","панчлайн","фристайл","рифма","версус","сцена","эмоция","баланс","путь"],
+      hard: ["интроспекция","философия","ментальность","энтропия","вибрация","дуализм","рефлексия","аналогия","метафора","иллюзия"]
+    };
+
+    let words = [...wordSets.easy];
+    let interval = null, wordCount = 0, currentMode = 'auto', beatPlaying = false;
+    let currentBeatId = 'bit1';
+
+    function setDifficulty(level){ words=[...wordSets[level]]; document.getElementById("word-display").textContent=`Сложность: ${level}`; }
+    function showWord(){ wordCount++; document.getElementById('word-counter').innerText=`🎯 Слов отбито: ${wordCount}`; document.getElementById("word-display").textContent=words[Math.floor(Math.random()*words.length)]; }
+    function startGenerator(){ if(!interval){ showWord(); interval=setInterval(showWord,4000);} }
+    function stopGenerator(){ clearInterval(interval); interval=null; }
+    function switchMode(){ currentMode=document.getElementById('modeSwitcher').value; document.getElementById('manual-button').style.display=currentMode==='manual'?'block':'none'; stopGenerator(); if(currentMode==='auto') startGenerator(); }
+    function startApp(){ document.getElementById('start-screen').style.display='none'; document.getElementById('controls').style.display='block'; generateParticles(); switchMode(); }
+    function generateParticles(){const c=document.getElementById('particles');for(let i=0;i<50;i++){const p=document.createElement('div');p.className='particle';p.style.left=Math.random()*100+'vw';p.style.top=Math.random()*100+'vh';p.style.animationDuration=(10+Math.random()*20)+'s';c.appendChild(p);}}
+    function toggleBeat(){ const beat=document.getElementById(currentBeatId); if(beatPlaying){beat.pause();beatPlaying=false;}else{beat.play();beatPlaying=true;} }
+    function changeBeat(){ stopAllBeats(); currentBeatId=document.getElementById("beatSelector").value; if(beatPlaying) document.getElementById(currentBeatId).play(); }
+    function stopAllBeats(){ document.querySelectorAll(".beat").forEach(b=>b.pause()); }
+
+    function openLearn(){ document.getElementById("learn-modal").style.display="flex"; }
+    function closeLearn(){ document.getElementById("learn-modal").style.display="none"; }
+    function findRhymes(){ const w=document.getElementById("rhyme-input").value.toLowerCase().trim(); const o=document.getElementById("rhyme-output"); if(!w){o.textContent="Введите слово!";return;} o.innerHTML=rhymes[w]?`Рифмы к <b>${w}</b>:<br>${rhymes[w].join(", ")}`:"😕 Рифмы не найдены. Попробуй другое слово."; }
+    
+    // === Проверь себя с вводом рифм ===
+const rhymeBase = {
+  "бит": ["фит","скит","ритм","элит","щит","хит"],
+  "рэп": ["трэп","степ","кэп","склеп","флэп","крэк"],
+  "улица": ["страница","крыльца","спица","птица","горица"],
+  "панч": ["мяч","скач","тач","карач","анш"],
+  "строка": ["рука","река","доска","морока","ирока"],
+  "флоу": ["шоу","гоу","лоу","ноу","сноу"],
+  "огонь": ["район","закон","балкон","погон","салон"],
+  "вера": ["карьера","сфера","премьера","атмосфера"],
+  "звук": ["тюк","крюк","поток","кук","стук"],
+  "город": ["поворот","народ","переход","уровод","завод"]
+};
+
+let selfWord = "";
+let selfCount = 0;
+
+function newSelfWord() {
+  const keys = Object.keys(rhymeBase);
+  selfWord = keys[Math.floor(Math.random() * keys.length)];
+  document.getElementById("self-word").textContent = selfWord;
+  document.getElementById("rhyme-feedback").textContent = "Введите рифму и нажмите «Проверить»";
+  document.getElementById("rhyme-answer").value = "";
+}
+
+function checkRhyme() {
+  const answer = document.getElementById("rhyme-answer").value.toLowerCase().trim();
+  const output = document.getElementById("rhyme-feedback");
+
+  if (!selfWord) {
+    output.textContent = "Сначала нажми «Новое слово»!";
+    return;
+  }
+  if (!answer) {
+    output.textContent = "Введите слово для проверки!";
+    return;
+  }
+
+  const rhymes = rhymeBase[selfWord] || [];
+  if (rhymes.includes(answer)) {
+    selfCount++;
+    output.innerHTML = `🔥 Отлично! <b>${answer}</b> действительно рифмуется со словом <b>${selfWord}</b>.<br>Другие рифмы: ${rhymes.join(", ")}`;
+  } else {
+    output.innerHTML = `😅 Почти! Слово <b>${answer}</b> не входит в список, но вот примеры рифм:<br>${rhymes.join(", ")}`;
+  }
+
+  document.getElementById("self-count").textContent = `🎤 Угаданных рифм: ${selfCount}`;
+}
+
+  </script>
+</body>
+</html>
